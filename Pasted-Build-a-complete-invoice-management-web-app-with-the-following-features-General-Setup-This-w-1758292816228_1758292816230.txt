@@ -1,0 +1,44 @@
+Build a complete invoice management web app with the following features:
+
+General Setup:
+- This will be used by only one company. No signup, no login, no user management required.
+- Keep it simple, lightweight, and optimized for hosting on GitHub + Render.com.
+- Provide full frontend + backend code in a way that can be zipped and deployed easily.
+- At the end, also generate and provide a ready ZIP file of the project that I can download directly.
+
+Company Details:
+- Company info (name, address, phone, email, logo) should be added once in the settings section.
+- These details should automatically appear on every invoice, shown lightly (transparent watermark style) under the header area.
+
+Invoice Features:
+- Header section: Invoice number, issue date, due date, and currency (PKR, USD, EURO, GBP).
+- Project rows: Each row must have Title, Description, Unit Price, Quantity (optional), Discount (optional).
+- Discount should have 2 options: either fixed amount or percentage.
+- Auto-calculation for each row: (Unit Price × Quantity – Discount).
+- Subtotal + optional Tax + Grand Total should be calculated automatically.
+- Deposit feature: Allow setting a required percentage deposit (e.g. 50%). Show calculated deposit, paid amount, and remaining balance.
+- Highlight **Remaining Balance** more strongly than subtotal or deposit. (Remaining balance should appear in blue, not the entire box).
+- Payment section: Manual bank account info can be entered by the company to display on invoices (no PayPal integration for now).
+
+Sales Tracking:
+- Sales dashboard should show total number of invoices, total sales, total paid, and total remaining balance.
+- Ability to filter by paid/unpaid invoices.
+
+Client Management:
+- When creating a new invoice, allow adding client info (name, phone, email).
+- Save each client in a simple client list (local database).
+- When generating a new invoice, previously saved clients should appear as selectable.
+
+Notes Section:
+- Allow adding notes (instructions, special messages, etc.) to each invoice.
+
+UI Requirements:
+- Clean, professional layout.
+- Blue strip headers with white text for invoice table columns.
+- Payment info bar (Remaining Balance) should be highlighted in blue background, white text.
+- Make sure invoices are downloadable as PDF and shareable via link.
+
+Extra:
+- All amounts should display without decimals (e.g. Rs 5000 instead of Rs 5000.00).
+- Provide source code as a downloadable ZIP file at the end.
+- Code must run perfectly on GitHub + Render.com without modification.
