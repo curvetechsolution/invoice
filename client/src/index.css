@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Outfit:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Elegant Blue Theme based on Curve Tech Solution */
+  --background: 210 20% 98%;
+  --foreground: 222 47% 11%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+
+  /* Primary Blue */
+  --primary: 217 91% 60%;
+  --primary-foreground: 210 40% 98%;
+
+  /* Secondary / Muted */
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+
+  --accent: 217 91% 60%;
+  --accent-foreground: 210 40% 98%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 210 40% 98%;
+
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 217 91% 60%;
+
+  --radius: 0.75rem;
+
+  /* Custom fonts mapped to variables for CSS usage if needed */
+  --font-sans: 'DM Sans', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply tracking-tight;
+  }
+}
+
+/* Custom Animations */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-in {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+
+/* ── INVOICE PRINT STYLES ─────────────────────────────────── */
+@media print {
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 2cm 2.5cm;
+  }
+
+  html, body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide action bar — Invoice Preview heading + Print/Edit buttons */
+  #invoice-action-bar {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Hide any element with print:hidden tailwind class */
+  [class*="print:hidden"] {
+    display: none !important;
+  }
+
+  /* Outer wrapper */
+  #invoice-print-root {
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: unset !important;
+  }
+
+  /* Invoice paper — full width, no shadow */
+  #invoice-print-root .max-w-4xl {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Flex layout */
+  #invoice-print-root .flex { display: flex !important; }
+  #invoice-print-root .flex-col { flex-direction: column !important; }
+  #invoice-print-root .items-start { align-items: flex-start !important; }
+  #invoice-print-root .items-center { align-items: center !important; }
+  #invoice-print-root .justify-between { justify-content: space-between !important; }
+  #invoice-print-root .justify-end { justify-content: flex-end !important; }
+  #invoice-print-root .shrink-0 { flex-shrink: 0 !important; }
+  #invoice-print-root .flex-1 { flex: 1 1 0% !important; }
+
+  /* Grid */
+  #invoice-print-root .grid { display: grid !important; }
+  #invoice-print-root .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+  /* Table */
+  #invoice-print-root table { width: 100% !important; border-collapse: collapse !important; }
+  #invoice-print-root tr, #invoice-print-root th, #invoice-print-root td {
+    page-break-inside: avoid !important;
+  }
+
+  /* Colors */
+  #invoice-print-root .bg-slate-900 { background-color: #0f172a !important; }
+  #invoice-print-root .bg-slate-50  { background-color: #f8fafc !important; }
+  #invoice-print-root .text-white     { color: #ffffff !important; }
+  #invoice-print-root .text-red-500   { color: #ef4444 !important; }
+  #invoice-print-root .text-slate-300 { color: #cbd5e1 !important; }
+
+  /* Totals panel width */
+  #invoice-print-root .w-72 { width: 18rem !important; }
+}
