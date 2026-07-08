@@ -649,6 +649,22 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
                       </FormItem>
                     )} />
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="invoice.dueDate" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Due Date</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            value={field.value ? format(new Date(field.value as any), "yyyy-MM-dd") : ""}
+                            onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
