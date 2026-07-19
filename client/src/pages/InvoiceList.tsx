@@ -112,9 +112,12 @@ export default function InvoiceList() {
       const beforeDot  = rawPrice.split("·")[0];
       // Step 2: take only part before "/" (per month info)
       const beforeSlash = beforeDot.split("/")[0];
-      // Step 3: remove everything except digits and decimal point (keep cents for USD, PKR has no decimals anyway)
-      const cleanPrice  = beforeSlash.replace(/[^0-9.]/g, "");
-      const priceNum    = parseFloat(cleanPrice) || 0;
+      // Step 3: remove thousands separators first, then extract the numeric part.
+      // (Doing replace(/[^0-9.]/g, "") directly on "Rs. 28,000" kept the "." from "Rs."
+      // once the comma was stripped, producing ".28000" -> parsed as 0.28)
+      const noCommas    = beforeSlash.replace(/,/g, "");
+      const numMatch    = noCommas.match(/\d+(\.\d+)?/);
+      const priceNum    = numMatch ? parseFloat(numMatch[0]) : 0;
 
       // 2. Get next invoice number from localStorage
       const storedInvoicesForNum = JSON.parse(localStorage.getItem("invoices") || "[]");
