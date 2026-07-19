@@ -313,29 +313,29 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
           <div className="inv-pad" style={{ padding: "48px 56px" }}>
 
             {/* ── TOP HEADER: Logo + Company LEFT | INVOICE RIGHT ── */}
-            <div className="inv-mb" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "32px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
+            <div className="inv-mb inv-header" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "32px" }}>
+              <div className="inv-header-left" style={{ display: "flex", alignItems: "center", gap: "18px" }}>
                 <img src={logoImg} alt="Logo" style={{ width: "68px", height: "68px", objectFit: "contain", flexShrink: 0 }} />
                 <div>
-                  <div style={{ fontSize: "1.5rem", fontWeight: 800, color: "#0f172a", lineHeight: 1.15, whiteSpace: "nowrap" }}>Curve Tech Solution</div>
+                  <div className="inv-company-name" style={{ fontSize: "1.5rem", fontWeight: 800, color: "#0f172a", lineHeight: 1.15, whiteSpace: "nowrap" }}>Curve Tech Solution</div>
                   <div style={{ fontSize: "0.84rem", color: "#64748b", marginTop: "6px", lineHeight: 1.55 }}>hello@curvetechsolution.online</div>
                   <div style={{ fontSize: "0.84rem", color: "#64748b", lineHeight: 1.55 }}>www.curvetechsolution.online</div>
                 </div>
               </div>
-              <div style={{ fontSize: "3.8rem", fontWeight: 900, color: "#0f172a", letterSpacing: "0.13em", lineHeight: 1, whiteSpace: "nowrap" }}>INVOICE</div>
+              <div className="inv-title" style={{ fontSize: "3.8rem", fontWeight: 900, color: "#0f172a", letterSpacing: "0.13em", lineHeight: 1, whiteSpace: "nowrap" }}>INVOICE</div>
             </div>
 
             {/* ── DIVIDER ── */}
             <div className="inv-mb" style={{ borderTop: "1.5px solid #e2e8f0", marginBottom: "28px" }} />
 
             {/* ── OFFICES (left) + META GRID (right) ── */}
-            <div className="inv-mb" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" }}>
+            <div className="inv-mb inv-meta-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "32px" }}>
 
               {/* Left: USA + Pakistan side by side */}
-              <div style={{ display: "flex", gap: "60px" }}>
+              <div className="inv-offices" style={{ display: "flex", gap: "60px" }}>
                 <div>
                   <div style={{ fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.1em", color: "#0f172a", marginBottom: "10px" }}>USA OFFICE</div>
-                  <div style={{ fontSize: "0.82rem", color: "#475569", lineHeight: 1.7, whiteSpace: "nowrap" }}>
+                  <div className="inv-address" style={{ fontSize: "0.82rem", color: "#475569", lineHeight: 1.7, whiteSpace: "nowrap" }}>
                     117 South Lexington Street,<br />
                     Ste 100, Harrisonville, MO<br />
                     64701, USA
@@ -343,7 +343,7 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
                 </div>
                 <div>
                   <div style={{ fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.1em", color: "#0f172a", marginBottom: "10px" }}>PAKISTAN OFFICE</div>
-                  <div style={{ fontSize: "0.82rem", color: "#475569", lineHeight: 1.7, whiteSpace: "nowrap" }}>
+                  <div className="inv-address" style={{ fontSize: "0.82rem", color: "#475569", lineHeight: 1.7, whiteSpace: "nowrap" }}>
                     Office No 4, First Floor, Tariq<br />
                     Business Center, Block H-3,<br />
                     Johar Town, Lahore, 54000
@@ -352,7 +352,7 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
               </div>
 
               {/* Right: 2×2 meta grid — all right-aligned */}
-              <div style={{ display: "grid", gridTemplateColumns: "auto auto", columnGap: "48px", rowGap: "18px", textAlign: "right" as const, flexShrink: 0 }}>
+              <div className="inv-meta-grid" style={{ display: "grid", gridTemplateColumns: "auto auto", columnGap: "48px", rowGap: "18px", textAlign: "right" as const, flexShrink: 0 }}>
                 <div>
                   <div style={{ fontSize: "0.62rem", fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.1em", color: "#94a3b8", marginBottom: "4px", whiteSpace: "nowrap" }}>INVOICE NUMBER</div>
                   <div style={{ fontSize: "1.6rem", fontWeight: 900, color: "#0f172a", whiteSpace: "nowrap" }}>#{form.getValues("invoice.invoiceNumber")}</div>
@@ -379,7 +379,8 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
 
             {/* ── ITEMS TABLE ── */}
             <div className="inv-mb" style={{ border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden", marginBottom: "32px" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: "0.88rem" }}>
+              <div className="inv-table-scroll" style={{ overflowX: "auto" }}>
+              <table className="inv-table" style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: "0.88rem" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid #e2e8f0", background: "#ffffff" }}>
                     <th style={{ padding: "14px 22px", textAlign: "left" as const, fontSize: "0.68rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase" as const, letterSpacing: "0.09em" }}>Description</th>
@@ -406,10 +407,11 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
 
             {/* ── BOTTOM: Terms LEFT | Totals RIGHT (right-edge aligned like PDF 2) ── */}
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "48px", alignItems: "flex-start" }}>
+            <div className="inv-bottom-row" style={{ display: "flex", justifyContent: "space-between", gap: "48px", alignItems: "flex-start" }}>
 
               {/* Terms & Conditions */}
               {form.getValues("invoice.description") ? (
@@ -420,7 +422,7 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
               ) : <div style={{ flex: 1 }} />}
 
               {/* Totals panel — right-edge, 320px wide like PDF 2 */}
-              <div style={{ width: "320px", flexShrink: 0 }}>
+              <div className="inv-totals" style={{ width: "320px", flexShrink: 0 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid #e2e8f0" }}>
                   <span style={{ fontSize: "0.88rem", color: "#94a3b8" }}>Subtotal</span>
                   <span style={{ fontSize: "0.88rem", color: "#1e293b" }}>{fmt(form.getValues("invoice.subtotal"))}</span>
@@ -496,7 +498,7 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
               <div style={{ fontSize: "0.68rem", color: "#94a3b8", marginTop: "4px" }}>Curve Tech Solution (Pvt) Ltd &middot; Last Updated: February 2025</div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
+            <div className="legal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "40px" }}>
 
               {/* Terms & Conditions */}
               <div>
@@ -571,6 +573,35 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
             #legal-page .legal-pad { padding: 10px 22px !important; }
             #legal-page ol { page-break-inside: avoid !important; break-inside: avoid !important; }
             #legal-page li { page-break-inside: avoid !important; break-inside: avoid !important; }
+          }
+
+          /* ── MOBILE / SMALL-SCREEN VIEW (does not affect print/PDF) ── */
+          @media screen and (max-width: 768px) {
+            #invoice-print-root { padding: 12px !important; }
+            #invoice-paper .inv-pad, #legal-page .legal-pad { padding: 20px 16px !important; }
+
+            /* Header: stack logo/company above the INVOICE title */
+            .inv-header { flex-direction: column !important; gap: 16px !important; }
+            .inv-header-left { flex-wrap: wrap !important; }
+            .inv-company-name { white-space: normal !important; font-size: 1.2rem !important; }
+            .inv-title { font-size: 2.2rem !important; }
+
+            /* Offices + meta grid: stack, allow address text to wrap */
+            .inv-meta-row { flex-direction: column !important; gap: 24px !important; }
+            .inv-offices { flex-direction: column !important; gap: 20px !important; }
+            .inv-address { white-space: normal !important; }
+            .inv-meta-grid { grid-template-columns: 1fr 1fr !important; column-gap: 20px !important; text-align: left !important; }
+
+            /* Items table: keep columns intact, scroll horizontally instead of crushing text */
+            .inv-table-scroll { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+            .inv-table { min-width: 560px !important; }
+
+            /* Bottom row: stack Terms above Totals, totals goes full width */
+            .inv-bottom-row { flex-direction: column !important; gap: 24px !important; }
+            .inv-totals { width: 100% !important; }
+
+            /* Legal page: single column on mobile */
+            .legal-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
           }
         ` }} />
       </div>
