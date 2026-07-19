@@ -439,7 +439,7 @@ export default function InvoiceList() {
                 <CardDescription>{invoices?.length ?? 0} invoice(s) total</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
+                <div className="rounded-md border hidden md:block">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -504,6 +504,60 @@ export default function InvoiceList() {
                       )}
                     </TableBody>
                   </Table>
+                </div>
+
+                {/* ── Mobile card list — shown instead of the table below md ── */}
+                <div className="md:hidden space-y-3">
+                  {invoices?.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">No invoices found.</p>
+                  ) : (
+                    invoices?.map((invoice) => (
+                      <Card key={invoice.id} className="border-slate-200">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <div className="min-w-0">
+                              <p className="font-semibold">#{invoice.invoiceNumber}</p>
+                              <p className="text-sm truncate">{invoice.clientName}</p>
+                            </div>
+                            <span className={cn(
+                              "px-2 py-1 rounded-full text-xs font-medium shrink-0",
+                              invoice.status.toLowerCase() === 'paid'
+                                ? "bg-emerald-100 text-emerald-700"
+                                : invoice.status.toLowerCase() === 'partial'
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-amber-100 text-amber-700"
+                            )}>
+                              {invoice.status}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{format(new Date(invoice.issueDate), "MMM d, yyyy")}</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <p className="font-semibold">{formatCurrency(invoice.totalAmount)}</p>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => setLocation(`/invoices/${invoice.id}/preview`)}>
+                                <Eye className="h-4 w-4 text-slate-600" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => setLocation(`/invoices/${invoice.id}/edit`)}>
+                                <Edit className="h-4 w-4 text-blue-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  if (confirm(`Invoice #${invoice.invoiceNumber} delete karna chahte hain?`)) {
+                                    deleteMutation.mutate(invoice.id);
+                                  }
+                                }}
+                                disabled={deleteMutation.isPending}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
