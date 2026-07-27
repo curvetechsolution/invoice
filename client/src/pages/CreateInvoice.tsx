@@ -246,22 +246,20 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
     },
     onError: (error: any) => {
       console.error("DB sync failed:", error);
-      toast({
-        title: "⚠️ Database update failed",
-        description: String(error?.message || error),
-        variant: "destructive",
-      });
     }
   });
 
   const handleFormSubmit = async (data: FormValues) => {
-    try {
-      const storedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-      const invoiceId = params?.id || null;
-      const isEditModeLocal = invoiceId !== undefined && invoiceId !== null && invoiceId !== "";
+    const invoiceId = params?.id || null;
+    const isEditModeLocal = invoiceId !== undefined && invoiceId !== null && invoiceId !== "";
 
+    try {
+      // Save to DB FIRST and wait for it to actually finish
+      await mutation.mutateAsync(data);
+
+      // Only touch localStorage (as a local cache) after DB confirms success
+      const storedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
       if (isEditModeLocal) {
-        // UPDATE in localStorage — compare as strings to avoid type mismatch
         const updatedInvoices = storedInvoices.map((inv: any) =>
           String(inv.id) === String(invoiceId) || String(inv.invoiceNumber) === String(invoiceId)
             ? { ...data.invoice, id: inv.id, invoiceNumber: inv.invoiceNumber, items: data.items }
@@ -270,20 +268,22 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
         localStorage.setItem("invoices", JSON.stringify(updatedInvoices));
         toast({ title: "✅ Invoice Updated", description: "Your invoice has been updated successfully." });
       } else {
-        // CREATE in localStorage
         const newId = data.invoice.invoiceNumber;
         const newInvoice = { ...data.invoice, id: newId, items: data.items };
         localStorage.setItem("invoices", JSON.stringify([...storedInvoices, newInvoice]));
         toast({ title: "✅ Invoice Created", description: "Your invoice has been saved successfully." });
       }
 
-      // Sync with DB in background — don't block or show error to user
-      mutation.mutate(data);
-
-      // Redirect immediately — don't wait for DB
+      // Only navigate away AFTER the DB save is confirmed
       setLocation("/invoices");
-    } catch (error) {
-      console.error("Error saving to localStorage:", error);
+    } catch (error: any) {
+      // DB save failed — do NOT navigate away, so the user doesn't lose their edits
+      console.error("Error saving invoice:", error);
+      toast({
+        title: "⚠️ Update failed",
+        description: String(error?.message || "Could not save changes. Please try again."),
+        variant: "destructive",
+      });
     }
   };
 
