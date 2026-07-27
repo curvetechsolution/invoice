@@ -526,7 +526,7 @@ async function registerRoutes(httpServer2, app2) {
           });
         });
       }
-      const invoiceData = insertInvoiceSchema.partial().parse(invoice);
+      const invoiceData = insertInvoiceSchema.extend({ issueDate: z2.coerce.date().optional(), dueDate: z2.coerce.date().optional() }).partial().parse(invoice);
       const itemsData = items ? z2.array(insertInvoiceItemSchema.omit({ invoiceId: true })).parse(items) : void 0;
       const updatedInvoice = await storage.updateInvoice(id, invoiceData, itemsData);
       if (!updatedInvoice) {
