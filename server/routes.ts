@@ -106,7 +106,13 @@ export async function registerRoutes(
         });
       }
 
-      const invoiceData = insertInvoiceSchema.partial().parse(invoice);
+      const invoiceData = insertInvoiceSchema
+        .extend({
+          issueDate: z.coerce.date().optional(),
+          dueDate: z.coerce.date().optional(),
+        })
+        .partial()
+        .parse(invoice);
       const itemsData = items ? z.array(insertInvoiceItemSchema.omit({ invoiceId: true })).parse(items) : undefined;
 
       const updatedInvoice = await storage.updateInvoice(id, invoiceData, itemsData);
