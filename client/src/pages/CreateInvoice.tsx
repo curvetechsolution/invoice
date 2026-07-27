@@ -244,7 +244,14 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
       }
       queryClient.invalidateQueries({ queryKey: ["/api/invoices/next-number"] });
     },
-    onError: () => {/* DB sync failed silently — localStorage is source of truth */}
+    onError: (error: any) => {
+      console.error("DB sync failed:", error);
+      toast({
+        title: "⚠️ Database update failed",
+        description: String(error?.message || error),
+        variant: "destructive",
+      });
+    }
   });
 
   const handleFormSubmit = async (data: FormValues) => {
