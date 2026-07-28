@@ -71,36 +71,16 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
   });
 
   useEffect(() => {
-    const storedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-    const invoiceId = params?.id ? params.id : null; // keep as string for comparison
-    const isEditMode = invoiceId !== undefined && invoiceId !== null;
-    
-    if (isEditMode) {
-      // Find by id OR invoiceNumber — compare as strings to avoid type mismatch
-      const existingInvoice = storedInvoices.find((inv: any) =>
-        String(inv.id) === String(invoiceId) || String(inv.invoiceNumber) === String(invoiceId)
-      );
-      if (existingInvoice) {
-        form.reset({
-          invoice: existingInvoice,
-          items: (existingInvoice.items || []).map((item: any) => ({
-            ...item,
-            price: String(item.price),
-            discountValue: String(item.discountValue || "0"),
-            total: String(item.total)
-          }))
-        });
-      } else if (invoiceData) {
-        form.reset({
-          invoice: invoiceData.invoice,
-          items: invoiceData.items.map(item => ({
-            ...item,
-            price: String(item.price),
-            discountValue: String(item.discountValue),
-            total: String(item.total)
-          }))
-        });
-      }
+    if (params?.id && invoiceData) {
+      form.reset({
+        invoice: invoiceData.invoice,
+        items: invoiceData.items.map(item => ({
+          ...item,
+          price: String(item.price),
+          discountValue: String(item.discountValue),
+          total: String(item.total)
+        }))
+      });
     }
   }, [params?.id, invoiceData, form]);
 
@@ -250,37 +230,20 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
   });
 
   const handleFormSubmit = async (data: FormValues) => {
-    const invoiceId = params?.id || null;
-    const isEditModeLocal = invoiceId !== undefined && invoiceId !== null && invoiceId !== "";
-
     try {
-      // Save to DB FIRST and wait for it to actually finish
       await mutation.mutateAsync(data);
-
-      // Only touch localStorage (as a local cache) after DB confirms success
-      const storedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-      if (isEditModeLocal) {
-        const updatedInvoices = storedInvoices.map((inv: any) =>
-          String(inv.id) === String(invoiceId) || String(inv.invoiceNumber) === String(invoiceId)
-            ? { ...data.invoice, id: inv.id, invoiceNumber: inv.invoiceNumber, items: data.items }
-            : inv
-        );
-        localStorage.setItem("invoices", JSON.stringify(updatedInvoices));
-        toast({ title: "✅ Invoice Updated", description: "Your invoice has been updated successfully." });
-      } else {
-        const newId = data.invoice.invoiceNumber;
-        const newInvoice = { ...data.invoice, id: newId, items: data.items };
-        localStorage.setItem("invoices", JSON.stringify([...storedInvoices, newInvoice]));
-        toast({ title: "✅ Invoice Created", description: "Your invoice has been saved successfully." });
-      }
-
-      // Only navigate away AFTER the DB save is confirmed
+      toast({
+        title: isEditMode ? "✅ Invoice Updated" : "✅ Invoice Created",
+        description: isEditMode
+          ? "Your invoice has been updated successfully."
+          : "Your invoice has been saved successfully.",
+      });
       setLocation("/invoices");
     } catch (error: any) {
-      // DB save failed — do NOT navigate away, so the user doesn't lose their edits
+      // Save failed — do NOT navigate away, so the user doesn't lose their edits
       console.error("Error saving invoice:", error);
       toast({
-        title: "⚠️ Update failed",
+        title: "⚠️ Save failed",
         description: String(error?.message || "Could not save changes. Please try again."),
         variant: "destructive",
       });
