@@ -16,6 +16,8 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import logoImg from "@assets/Curve_Tech_Solution_Logo_1767002702612.png";
 import { format } from "date-fns";
 import { z } from "zod";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const formSchema = z.object({
   invoice: insertInvoiceSchema,
@@ -29,6 +31,72 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
   const isPreviewMode = window.location.pathname.includes("/preview");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  // Generates the PDF from the actual DOM using html2canvas + jsPDF instead of
+  // window.print(), so mobile downloads look IDENTICAL to laptop downloads —
+  // browser print engines (esp. on mobile) don't reliably respect our print CSS.
+  const handleDownloadPdf = async () => {
+    const root = document.getElementById("invoice-print-root");
+    const paper = document.getElementById("invoice-paper");
+    if (!root || !paper) return;
+
+    setIsGeneratingPdf(true);
+    // Force the desktop layout even if we're on a small/mobile screen
+    root.classList.add("pdf-force-desktop");
+    // Let the browser apply the forced styles before we measure/capture
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
+    try {
+      const captureOptions = {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        windowWidth: 1280,
+      };
+
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+
+      const addCanvasAsPage = (canvas: HTMLCanvasElement, isFirstPage: boolean) => {
+        const imgData = canvas.toDataURL("image/png");
+        const ratio = canvas.height / canvas.width;
+        let renderW = pageW;
+        let renderH = pageW * ratio;
+        if (renderH > pageH) {
+          renderH = pageH;
+          renderW = pageH / ratio;
+        }
+        const x = (pageW - renderW) / 2;
+        const y = (pageH - renderH) / 2;
+        if (!isFirstPage) pdf.addPage();
+        pdf.addImage(imgData, "PNG", x, y, renderW, renderH);
+      };
+
+      const invoiceCanvas = await html2canvas(paper, captureOptions);
+      addCanvasAsPage(invoiceCanvas, true);
+
+      const legalPage = document.getElementById("legal-page");
+      if (legalPage) {
+        const legalCanvas = await html2canvas(legalPage, captureOptions);
+        addCanvasAsPage(legalCanvas, false);
+      }
+
+      const invNumber = form.getValues("invoice.invoiceNumber");
+      pdf.save(`Invoice-${invNumber || "draft"}.pdf`);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      toast({
+        title: "⚠️ PDF download failed",
+        description: "Kuch masla ho gaya, please dobara try karein.",
+        variant: "destructive",
+      });
+    } finally {
+      root.classList.remove("pdf-force-desktop");
+      setIsGeneratingPdf(false);
+    }
+  };
 
   const { data: invoiceData } = useQuery<{ invoice: Invoice, items: any[] }>({
     queryKey: [`/api/invoices/${params?.id}`],
@@ -266,7 +334,10 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
             <h1 style={{ fontSize: "1rem", fontWeight: 600, color: "#334155", margin: 0 }}>Invoice Preview</h1>
           </div>
           <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-            <Button variant="outline" style={{ fontSize: "0.875rem" }} onClick={() => window.print()}>Print / Download PDF</Button>
+            <Button variant="outline" style={{ fontSize: "0.875rem" }} onClick={() => window.print()}>Print</Button>
+            <Button variant="outline" style={{ fontSize: "0.875rem" }} onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
+              {isGeneratingPdf ? "Generating..." : "Download PDF"}
+            </Button>
             <Button style={{ fontSize: "0.875rem" }} onClick={() => setLocation(`/invoices/${params?.id}/edit`)}>Edit Invoice</Button>
           </div>
         </div>
@@ -573,6 +644,25 @@ export default function CreateInvoice({ params }: { params?: { id?: string } }) 
             /* Legal page: single column on mobile */
             .legal-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
           }
+
+          /* ── Forces the DESKTOP layout during PDF capture, even on a mobile screen ── */
+          #invoice-print-root.pdf-force-desktop .inv-header { flex-direction: row !important; gap: 0 !important; }
+          #invoice-print-root.pdf-force-desktop .inv-header-left { flex-wrap: nowrap !important; }
+          #invoice-print-root.pdf-force-desktop .inv-company-name { white-space: nowrap !important; font-size: 1.5rem !important; }
+          #invoice-print-root.pdf-force-desktop .inv-title { font-size: 3.8rem !important; }
+          #invoice-print-root.pdf-force-desktop .inv-meta-row { flex-direction: row !important; gap: 0 !important; }
+          #invoice-print-root.pdf-force-desktop .inv-offices { flex-direction: row !important; gap: 60px !important; }
+          #invoice-print-root.pdf-force-desktop .inv-address { white-space: nowrap !important; }
+          #invoice-print-root.pdf-force-desktop .inv-meta-grid { grid-template-columns: auto auto !important; column-gap: 48px !important; text-align: right !important; }
+          #invoice-print-root.pdf-force-desktop .inv-table-scroll { overflow-x: visible !important; }
+          #invoice-print-root.pdf-force-desktop .inv-table { min-width: 0 !important; }
+          #invoice-print-root.pdf-force-desktop .inv-bottom-row { flex-direction: row !important; gap: 48px !important; }
+          #invoice-print-root.pdf-force-desktop .inv-totals { width: 320px !important; }
+          #invoice-print-root.pdf-force-desktop .legal-grid { grid-template-columns: 1fr 1fr !important; gap: 40px !important; }
+          #invoice-print-root.pdf-force-desktop #invoice-paper .inv-pad { padding: 48px 56px !important; }
+          #invoice-print-root.pdf-force-desktop #legal-page .legal-pad { padding: 36px 56px !important; }
+          #invoice-print-root.pdf-force-desktop #invoice-paper,
+          #invoice-print-root.pdf-force-desktop #legal-page { max-width: 1180px !important; }
         ` }} />
       </div>
     );
