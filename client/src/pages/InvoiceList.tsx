@@ -78,6 +78,51 @@ export default function InvoiceList() {
     return [...dbInvoices, ...localOnly];
   })();
 
+  const localOnlyCount = (() => {
+    const local: Invoice[] = JSON.parse(localStorage.getItem("invoices") || "[]");
+    const dbIds = new Set(dbInvoices.map((inv: Invoice) => String(inv.invoiceNumber)));
+    return local.filter((inv: any) => !dbIds.has(String(inv.invoiceNumber))).length;
+  })();
+
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncLocalToDb = async () => {
+    setSyncing(true);
+    const local: any[] = JSON.parse(localStorage.getItem("invoices") || "[]");
+    const dbIds = new Set(dbInvoices.map((inv: Invoice) => String(inv.invoiceNumber)));
+    const toSync = local.filter((inv: any) => !dbIds.has(String(inv.invoiceNumber)));
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const inv of toSync) {
+      try {
+        const { id, invoiceNumber, createdAt, items, ...invoiceFields } = inv;
+        await apiRequest("POST", "/api/invoices", {
+          invoice: { ...invoiceFields, invoiceNumber },
+          items: (items || []).map((it: any) => {
+            const { id: _itemId, invoiceId: _invoiceId, ...rest } = it;
+            return rest;
+          }),
+        });
+        successCount++;
+      } catch (err) {
+        console.error("Failed to sync invoice", inv.invoiceNumber, err);
+        failCount++;
+      }
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+    await queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+    setSyncing(false);
+
+    toast({
+      title: "Sync Complete",
+      description: `${successCount} invoice(s) synced to database.${failCount > 0 ? ` ${failCount} failed — nothing was deleted.` : ""}`,
+      variant: failCount > 0 ? "destructive" : undefined,
+    });
+  };
+
   const { data: pendingRequests = [], isLoading: loadingPending, refetch: refetchRequests } = useQuery<InvoiceRequest[]>({
     queryKey: ["supabase-invoice-requests"],
     queryFn: fetchSupabaseRequests,
@@ -432,11 +477,35 @@ export default function InvoiceList() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  All Invoices
-                </CardTitle>
-                <CardDescription>{invoices?.length ?? 0} invoice(s) total</CardDescription>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      All Invoices
+                    </CardTitle>
+                    <CardDescription>{invoices?.length ?? 0} invoice(s) total</CardDescription>
+                  </div>
+                  {localOnlyCount > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={syncing}
+                      onClick={handleSyncLocalToDb}
+                    >
+                      {syncing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Syncing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Sync {localOnlyCount} invoice(s) to database
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border hidden md:block">
