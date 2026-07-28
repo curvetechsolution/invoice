@@ -70,58 +70,7 @@ export default function InvoiceList() {
     queryKey: ["/api/invoices"],
   });
 
-  // Merge DB invoices with localStorage invoices (localStorage is source of truth for accepted requests)
-  const invoices = (() => {
-    const local: Invoice[] = JSON.parse(localStorage.getItem("invoices") || "[]");
-    const dbIds = new Set(dbInvoices.map((inv: Invoice) => String(inv.invoiceNumber)));
-    const localOnly = local.filter((inv: any) => !dbIds.has(String(inv.invoiceNumber)));
-    return [...dbInvoices, ...localOnly];
-  })();
-
-  const localOnlyCount = (() => {
-    const local: Invoice[] = JSON.parse(localStorage.getItem("invoices") || "[]");
-    const dbIds = new Set(dbInvoices.map((inv: Invoice) => String(inv.invoiceNumber)));
-    return local.filter((inv: any) => !dbIds.has(String(inv.invoiceNumber))).length;
-  })();
-
-  const [syncing, setSyncing] = useState(false);
-
-  const handleSyncLocalToDb = async () => {
-    setSyncing(true);
-    const local: any[] = JSON.parse(localStorage.getItem("invoices") || "[]");
-    const dbIds = new Set(dbInvoices.map((inv: Invoice) => String(inv.invoiceNumber)));
-    const toSync = local.filter((inv: any) => !dbIds.has(String(inv.invoiceNumber)));
-
-    let successCount = 0;
-    let failCount = 0;
-
-    for (const inv of toSync) {
-      try {
-        const { id, invoiceNumber, createdAt, items, ...invoiceFields } = inv;
-        await apiRequest("POST", "/api/invoices", {
-          invoice: { ...invoiceFields, invoiceNumber },
-          items: (items || []).map((it: any) => {
-            const { id: _itemId, invoiceId: _invoiceId, ...rest } = it;
-            return rest;
-          }),
-        });
-        successCount++;
-      } catch (err) {
-        console.error("Failed to sync invoice", inv.invoiceNumber, err);
-        failCount++;
-      }
-    }
-
-    await queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-    await queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-    setSyncing(false);
-
-    toast({
-      title: "Sync Complete",
-      description: `${successCount} invoice(s) synced to database.${failCount > 0 ? ` ${failCount} failed — nothing was deleted.` : ""}`,
-      variant: failCount > 0 ? "destructive" : undefined,
-    });
-  };
+  const invoices = dbInvoices;
 
   const { data: pendingRequests = [], isLoading: loadingPending, refetch: refetchRequests } = useQuery<InvoiceRequest[]>({
     queryKey: ["supabase-invoice-requests"],
@@ -164,13 +113,9 @@ export default function InvoiceList() {
       const numMatch    = noCommas.match(/\d+(\.\d+)?/);
       const priceNum    = numMatch ? parseFloat(numMatch[0]) : 0;
 
-      // 2. Get next invoice number from localStorage
-      const storedInvoicesForNum = JSON.parse(localStorage.getItem("invoices") || "[]");
-      const maxNum = storedInvoicesForNum.reduce((max: number, inv: any) => {
-        const n = parseInt(inv.invoiceNumber || inv.id || 0);
-        return n > max ? n : max;
-      }, 1000);
-      const nextNumber = maxNum + 1;
+      // 2. Get next invoice number from the server (real DB sequence, not a local guess)
+      const numRes = await apiRequest("GET", "/api/invoices/next-number");
+      const { nextNumber } = await numRes.json();
 
       // 3. Calculate totals
       const priceStr = priceNum.toFixed(2);
@@ -179,53 +124,15 @@ export default function InvoiceList() {
       const now = new Date().toISOString();
       const due = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      const newInvoice = {
-        id:                     nextNumber,
-        invoiceNumber:          nextNumber,
-        currency:               detectedCurrency,
-        issueDate:              now,
-        dueDate:                due,
-        clientName:             req.clientName   || "Unknown",
-        clientEmail:            req.clientEmail  || "",
-        clientPhone:            req.clientPhone  || "",
-        subtotal:               priceStr,
-        subtotalDiscountValue:  "0",
-        subtotalDiscountType:   "fixed",
-        taxValue:               "0",
-        taxType:                "fixed",
-        totalAmount:            priceStr,
-        depositType:            "fixed",
-        depositValue:           "0",
-        depositRequested:       "0.00",
-        payableAfterDeposit:    priceStr,
-        paidAmount:             "0",
-        payableAmount:          priceStr,
-        description:            req.message || "",
-        status:                 "Unpaid",
-        items: [{
-          title:         req.serviceName || "Service",
-          description:   req.message    || "",
-          price:         priceStr,
-          discountValue: "0",
-          discountType:  "fixed",
-          total:         priceStr,
-        }],
-      };
-
-      // 5. Save to localStorage (for preview + All Invoices list)
-      const storedInvoices = JSON.parse(localStorage.getItem("invoices") || "[]");
-      localStorage.setItem("invoices", JSON.stringify([...storedInvoices, newInvoice]));
-
-      // 6. Also save to DB in background (don't block on failure)
-      apiRequest("POST", "/api/invoices", {
+      const newInvoicePayload = {
         invoice: {
           invoiceNumber:          nextNumber,
           currency:               detectedCurrency,
           issueDate:              now,
           dueDate:                due,
-          clientName:             newInvoice.clientName,
-          clientEmail:            newInvoice.clientEmail,
-          clientPhone:            newInvoice.clientPhone,
+          clientName:             req.clientName   || "Unknown",
+          clientEmail:            req.clientEmail  || "",
+          clientPhone:            req.clientPhone  || "",
           subtotal:               priceStr,
           subtotalDiscountValue:  "0",
           subtotalDiscountType:   "fixed",
@@ -238,14 +145,24 @@ export default function InvoiceList() {
           payableAfterDeposit:    priceStr,
           paidAmount:             "0",
           payableAmount:          priceStr,
-          description:            newInvoice.description,
+          description:            req.message || "",
           status:                 "Unpaid",
         },
-        items: newInvoice.items,
-      }).catch(() => {/* DB save failed silently — localStorage is source of truth */});
+        items: [{
+          title:         req.serviceName || "Service",
+          description:   req.message    || "",
+          price:         priceStr,
+          discountValue: "0",
+          discountType:  "fixed",
+          total:         priceStr,
+        }],
+      };
 
-      // 7. Mark as accepted in Supabase
-      await updateSupabaseStatus(String(req.id), "accepted");
+      // 5. Save to DB and wait for confirmation before doing anything else
+      const createRes = await apiRequest("POST", "/api/invoices", newInvoicePayload);
+      const createdInvoice = await createRes.json();
+
+      // 6. Mark as accepted in Supabase
       await updateSupabaseStatus(String(req.id), "accepted");
 
       // 7. Refresh queries
@@ -258,8 +175,8 @@ export default function InvoiceList() {
         description: `Invoice #${nextNumber} created for ${req.clientName}.`,
       });
 
-      // 8. Go to preview — CreateInvoice will load from localStorage
-      setLocation(`/invoices/${nextNumber}/preview`);
+      // 8. Go to preview using the real DB id
+      setLocation(`/invoices/${createdInvoice.id}/preview`);
 
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -477,35 +394,11 @@ export default function InvoiceList() {
           ) : (
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      All Invoices
-                    </CardTitle>
-                    <CardDescription>{invoices?.length ?? 0} invoice(s) total</CardDescription>
-                  </div>
-                  {localOnlyCount > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={syncing}
-                      onClick={handleSyncLocalToDb}
-                    >
-                      {syncing ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Syncing...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Sync {localOnlyCount} invoice(s) to database
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  All Invoices
+                </CardTitle>
+                <CardDescription>{invoices?.length ?? 0} invoice(s) total</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="rounded-md border hidden md:block">
